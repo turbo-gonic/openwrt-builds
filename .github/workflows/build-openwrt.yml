@@ -34,7 +34,6 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
-    if: github.event.sender.id == 58765946
 
     steps:
     - name: Checkout
