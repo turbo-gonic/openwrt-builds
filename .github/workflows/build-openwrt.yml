@@ -1,28 +1,18 @@
-#=================================================
-# https://github.com/P3TERX/Actions-OpenWrt
-# Description: Build OpenWrt using GitHub Actions
-# Lisence: MIT
-# Author: P3TERX
-# Blog: https://p3terx.com
-#=================================================
-
 name: Build OpenWrt
 
 on:
   release:
-    types: published
+    types: 
+      - published
   push:
     branches:
       - master
     paths:
       - '.config'
-#  schedule:
-#    - cron: 0 8 * * 5
-#  watch:
-#    types: started
 
 env:
   REPO_URL: https://github.com/turbo-gonic/openwrt.git
+  TROGANT_REPO_URL: https://github.com/trojan-gfw/openwrt-trojan.git
   REPO_BRANCH: master
   CONFIG_FILE: .config
   DIY_SH: diy.sh
@@ -52,7 +42,13 @@ jobs:
         curl -fsSL https://raw.githubusercontent.com/P3TERX/dotfiles/master/.bashrc >> ~/.bashrc
 
     - name: Clone source code
-      run: git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+      run: |
+        git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+        git clone --depth 1 $TROGANT_REPO_URL -b $REPO_BRANCH openwrt-trojan
+
+    - name: Source code merge
+      run: |
+        cp -r $(ls -ad openwrt-trojan/*) openwrt/package
 
     - name: Update feeds
       run: cd openwrt && ./scripts/feeds update -a
@@ -62,11 +58,7 @@ jobs:
 
     - name: Load custom configuration
       run: |
-        [ -e files ] && mv files openwrt/files
         [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
-        chmod +x $DIY_SH
-        cd openwrt
-        ../$DIY_SH
 
     - name: SSH connection to Actions
       uses: P3TERX/debugger-action@master
@@ -86,7 +78,7 @@ jobs:
       run: |
         cd openwrt
         echo -e "$(nproc) thread compile"
-        make -j$(nproc) || make -j1 V=s
+        make -j$(nproc) V=s || make -j1 V=s
         echo "::set-output name=status::success"
 
     - name: Upload bin directory
